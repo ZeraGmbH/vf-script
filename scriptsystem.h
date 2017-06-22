@@ -15,8 +15,6 @@ namespace VeinScript
     explicit ScriptSystem(QObject *t_parent=0);
     virtual ~ScriptSystem();
 
-    ScriptInstance *scriptFromJson(QJsonDocument t_jsonDoc);
-    QJsonDocument scriptToJson(ScriptInstance *t_instance);
   public slots:
     void initSystem();
 
