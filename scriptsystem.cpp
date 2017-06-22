@@ -9,11 +9,17 @@
 #include <vcmp_introspectiondata.h>
 #include <vcmp_errordata.h>
 
+#include <QHash>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
 #include <QJsonDocument>
 #include <QJsonObject>
+
+
+//debug
+#include <typeinfo>
+#include <QDebug>
 
 namespace VeinScript
 {
@@ -21,6 +27,8 @@ namespace VeinScript
   {
     ScriptSystemPrivate(ScriptSystem *t_qPtr) : m_qPtr(t_qPtr), m_component(&m_engine)
     {
+      qCritical() << typeid(s_entityName).name();
+      Q_ASSERT(false);
     }
 
     void initOnce()
@@ -34,28 +42,26 @@ namespace VeinScript
         VeinEvent::CommandEvent *systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, systemData);
 
         emit m_qPtr->sigSendEvent(systemEvent);
-        systemEvent=0;
-        systemData=0;
 
-        VeinComponent::ComponentData *introspectionData=0;
+        VeinComponent::ComponentData *introspectionData = nullptr;
 
         //component name
         introspectionData = new VeinComponent::ComponentData();
         introspectionData->setEntityId(m_entityId);
         introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(m_entitynNameComponentName);
-        introspectionData->setNewValue(m_entityName);
+        introspectionData->setComponentName(s_entityNameComponentName);
+        introspectionData->setNewValue(s_entityName);
         introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
         introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
 
         systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
         emit m_qPtr->sigSendEvent(systemEvent);
-        systemEvent = 0;
+
         //scripts
         introspectionData = new VeinComponent::ComponentData();
         introspectionData->setEntityId(m_entityId);
         introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(m_scriptsComponentName);
+        introspectionData->setComponentName(s_scriptsComponentName);
         introspectionData->setNewValue(QVariant());
         introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
         introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
@@ -66,8 +72,8 @@ namespace VeinScript
         introspectionData = new VeinComponent::ComponentData();
         introspectionData->setEntityId(m_entityId);
         introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(m_addScriptComponentName);
-        introspectionData->setNewValue(m_addScriptPlaceholder);
+        introspectionData->setComponentName(s_addScriptComponentName);
+        introspectionData->setNewValue(QVariant());
         introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
         introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
 
@@ -77,8 +83,8 @@ namespace VeinScript
         introspectionData = new VeinComponent::ComponentData();
         introspectionData->setEntityId(m_entityId);
         introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(m_scriptMessageComponentName);
-        introspectionData->setNewValue(QVariant(m_scriptMessagePlaceholder));
+        introspectionData->setComponentName(s_scriptMessageComponentName);
+        introspectionData->setNewValue(QVariant());
         introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
         introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
 
@@ -107,23 +113,29 @@ namespace VeinScript
     const int m_entityId = 1;
     bool m_initDone=false;
 
-    const QString m_entityName = "_ScriptSystem";
-    const QString m_entitynNameComponentName = "EntityName";
-    const QString m_scriptsComponentName = "Scripts";
-    const QString m_addScriptComponentName = "addScript";
-    const QString m_addScriptPlaceholder = "send scripts to this component";
-    const QString m_scriptMessageComponentName = "scriptMessage";
-    const QString m_scriptMessagePlaceholder = "send script messages to this component";
+    static constexpr auto s_entityName = "_ScriptSystem";
+    static constexpr auto s_entityNameComponentName = "EntityName";
+    static constexpr auto s_scriptsComponentName = "Scripts";
+    static constexpr auto s_addScriptComponentName = "addScript";
+    static constexpr auto s_scriptMessageComponentName = "scriptMessage";
 
+    //script json keys
+    static constexpr auto s_scriptJsonNameKey = "scriptName";
+    static constexpr auto s_scriptJsonDataKey = "scriptData";
+    static constexpr auto s_scriptJsonSignatureKey = "sha256";
 
+    //message json keys
+    static constexpr auto s_messageJsonScriptNameKey = "scriptName";
+    static constexpr auto s_messageJsonDataKey = "messageData";
 
     ScriptSystem *m_qPtr;
     QQmlComponent m_component;
     QQmlEngine m_engine;
-    QVector<ScriptInstance *> m_scriptVector;
+    QHash<QString, ScriptInstance *> m_scriptHash;
     friend class ScriptSystem;
   };
 
+  //ScriptSystem
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
   {
   }
@@ -135,16 +147,15 @@ namespace VeinScript
     QJsonObject jsonObject = t_jsonDoc.object();
 
     QByteArray scriptSignature;
-    scriptSignature.append(jsonObject.value("sha256signature").toString());
+    scriptSignature.append(jsonObject.value(ScriptSystemPrivate::s_scriptJsonSignatureKey).toString());
     scriptSignature = QByteArray::fromBase64(scriptSignature);
     //@todo: check script signature with QCA openssl dgst verify
 
     QQuickItem *tmpItem = nullptr;
-    m_dPtr->m_component.setData(jsonObject.value("scriptData").toString().toUtf8(), QUrl(jsonObject.value("scriptName").toString()));
+    m_dPtr->m_component.setData(jsonObject.value(ScriptSystemPrivate::s_scriptJsonDataKey).toString().toUtf8(), QUrl(jsonObject.value(ScriptSystemPrivate::s_scriptJsonNameKey).toString()));
     tmpItem = qobject_cast<QQuickItem *>(m_dPtr->m_component.beginCreate(m_dPtr->m_engine.rootContext()));
     m_dPtr->m_component.completeCreate();
     ScriptInstance * tmpScript = new ScriptInstance(tmpItem, t_jsonDoc, this);
-    m_dPtr->m_scriptVector.append(tmpScript);
     return tmpScript;
   }
 
@@ -168,29 +179,26 @@ namespace VeinScript
       bool validated=false;
       VeinEvent::CommandEvent *cEvent = nullptr;
       cEvent = static_cast<VeinEvent::CommandEvent *>(t_event);
-      if(cEvent != nullptr &&
-         cEvent->eventSubtype() != VeinEvent::CommandEvent::EventSubtype::NOTIFICATION && //we do not need to process notifications
+      Q_ASSERT(cEvent != nullptr);
+      if(cEvent->eventSubtype() != VeinEvent::CommandEvent::EventSubtype::NOTIFICATION && //we do not need to process notifications
          cEvent->eventData()->type() == VeinComponent::ComponentData::dataType())
       {
         VeinComponent::ComponentData *cData=nullptr;
         cData = static_cast<VeinComponent::ComponentData *>(cEvent->eventData());
         Q_ASSERT(cData!=nullptr);
 
-        //validate fetch requests
-        if(cData->eventCommand() == VeinComponent::ComponentData::Command::CCMD_FETCH) /// @todo maybe add roles/views later
+        if(cData->eventCommand() == VeinComponent::ComponentData::Command::CCMD_SET &&
+           cData->entityId() == m_dPtr->m_entityId)
         {
-          validated = true;
-        }
-        else if(cData->eventCommand() == VeinComponent::ComponentData::Command::CCMD_SET &&
-                cData->entityId() == m_dPtr->m_entityId)
-        {
-          if(cData->componentName() == m_dPtr->m_addScriptComponentName)
+          if(cData->componentName() == m_dPtr->s_addScriptComponentName)
           {
             QJsonParseError *jsonScriptError = nullptr;
             QJsonDocument tmpScript = QJsonDocument::fromJson(cData->newValue().toString().toUtf8(), jsonScriptError);
+
             if(jsonScriptError->error == QJsonParseError::NoError)
             {
-
+              ScriptInstance *tmpInstance = scriptFromJson(tmpScript);
+              m_dPtr->m_scriptHash.insert(tmpInstance->getScriptName(), tmpInstance);
             }
             else
             {
@@ -198,13 +206,24 @@ namespace VeinScript
               m_dPtr->sendError(jsonScriptError->errorString(), cData);
             }
           }
-          else if(cData->componentName() == m_dPtr->m_scriptMessageComponentName)
+          else if(cData->componentName() == m_dPtr->s_scriptMessageComponentName)
           {
             QJsonParseError *jsonMessageError = nullptr;
-            QJsonDocument tmpMessage = QJsonDocument::fromJson(cData->newValue().toString().toUtf8(), jsonMessageError);
+            const QString tmpMessage = cData->newValue().toString();
+            QJsonDocument messageParsed = QJsonDocument::fromJson(tmpMessage.toUtf8(), jsonMessageError);
             if(jsonMessageError->error == QJsonParseError::NoError)
             {
-
+              QJsonObject messageObject = messageParsed.object();
+              const QString scriptReceiverName = messageObject.value(ScriptSystemPrivate::s_messageJsonScriptNameKey).toString();
+              ScriptInstance *messageScript = m_dPtr->m_scriptHash.value(scriptReceiverName, nullptr);
+              if(messageScript != nullptr)
+              {
+                messageScript->scriptMessageReceived(tmpMessage);
+              }
+              else
+              {
+                m_dPtr->sendError(tr("Script not found: %1").arg(scriptReceiverName), cData);
+              }
             }
             else
             {
@@ -219,10 +238,34 @@ namespace VeinScript
       {
         retVal = true;
         cEvent->setEventSubtype(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION);
-        cEvent->eventData()->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL); //the validated answer is authored from the system that runs the validator (aka. this system)
-        cEvent->eventData()->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL); //inform all users (may or may not result in network messages)
+        cEvent->eventData()->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
+        cEvent->eventData()->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
       }
     }
     return retVal;
+  }
+
+  void ScriptSystem::sendScriptMessage(const QString &t_message)
+  {
+    QJsonParseError *jsonMessageError = nullptr;
+    QJsonDocument tmpMessage = QJsonDocument::fromJson(t_message.toUtf8(), jsonMessageError);
+
+    if(jsonMessageError->error == QJsonParseError::NoError &&
+       tmpMessage.isObject() == true)
+    {
+      VeinComponent::ComponentData *errData = new VeinComponent::ComponentData();
+      errData->setCommand(VeinComponent::ComponentData::Command::CCMD_SET);
+      errData->setComponentName(ScriptSystemPrivate::s_scriptMessageComponentName);
+      errData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
+      errData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
+      errData->setNewValue(t_message);
+
+      VeinEvent::CommandEvent *cEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, errData);
+      emit sigSendEvent(cEvent);
+    }
+    else
+    {
+      //send error message?
+    }
   }
 } // namespace VeinScript

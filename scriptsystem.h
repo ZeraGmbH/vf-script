@@ -24,6 +24,8 @@ namespace VeinScript
   public:
     bool processEvent(QEvent *t_event) override;
 
+  protected slots:
+    void sendScriptMessage(const QString &t_message);
 
   private:
     ScriptSystemPrivate *m_dPtr=0;
