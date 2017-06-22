@@ -6,6 +6,7 @@
 
 namespace VeinScript
 {
+  class ScriptInstance;
   class ScriptSystemPrivate;
   class VEINSCRIPTSHARED_EXPORT ScriptSystem : public VeinEvent::EventSystem
   {
@@ -13,6 +14,11 @@ namespace VeinScript
   public:
     explicit ScriptSystem(QObject *t_parent=0);
     virtual ~ScriptSystem();
+
+    ScriptInstance *scriptFromJson(QJsonDocument t_jsonDoc);
+    QJsonDocument scriptToJson(ScriptInstance *t_instance);
+  public slots:
+    void initSystem();
 
     // EventSystem interface
   public:

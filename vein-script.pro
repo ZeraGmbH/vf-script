@@ -20,10 +20,12 @@ TEMPLATE = lib
 
 DEFINES += VEINSCRIPT_LIBRARY
 
-SOURCES += scriptsystem.cpp
+SOURCES += scriptsystem.cpp \
+    scriptinstance.cpp
 
 HEADERS += scriptsystem.h\
-        vein-script_global.h
+        vein-script_global.h \
+    scriptinstance.h
 
 public_headers.files = $$HEADERS
 
