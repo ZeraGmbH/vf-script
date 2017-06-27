@@ -1,5 +1,5 @@
-#include "scriptsystem.h"
-#include "scriptinstance.h"
+#include "vsc_scriptsystem.h"
+#include "vsc_scriptinstance.h"
 
 #include <vh_logging.h>
 #include <ve_eventdata.h>
@@ -140,13 +140,11 @@ namespace VeinScript
     static constexpr char const *s_entityNameComponentName = "EntityName";
     static constexpr char const *s_scriptsComponentName = "Scripts";
     static constexpr char const *s_addScriptComponentName = "addScript";
-    static constexpr char const *s_scriptMessageComponentName = "scriptMessage";
-
+    static constexpr char const *s_scriptMessageComponentName = "notifyScript";
     //script json keys
     static constexpr char const *s_scriptJsonNameKey = "scriptName";
     static constexpr char const *s_scriptJsonDataKey = "scriptData";
     static constexpr char const *s_scriptJsonSignatureKey = "scriptSignature";
-
     //message json keys
     static constexpr char const *s_messageJsonScriptNameKey = "scriptName";
     static constexpr char const *s_messageJsonDataKey = "messageData";
@@ -159,9 +157,11 @@ namespace VeinScript
   };
 
 
-
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
   {
+#if 0
+    connect(this, &ScriptSystem::sigSendScriptMessage, this, &ScriptSystem::sendScriptMessage);
+#endif
   }
 
   void ScriptSystem::initSystem()
@@ -246,6 +246,7 @@ namespace VeinScript
     return retVal;
   }
 
+#if 0
   void ScriptSystem::sendScriptMessage(const QString &t_message)
   {
     QJsonParseError *jsonMessageError = nullptr;
@@ -269,4 +270,6 @@ namespace VeinScript
       //send error message?
     }
   }
+#endif
+
 } // namespace VeinScript
