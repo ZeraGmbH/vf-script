@@ -36,29 +36,6 @@ namespace VeinScript
     return m_scriptData;
   }
 
-#if 0
-  QJsonDocument ScriptInstance::getScriptState() const
-  {
-    const QMetaObject* mObject = m_scriptObject->metaObject();
-    QJsonDocument jsonDocument;
-    QJsonObject jsonObject;
-    QJsonValue jsonValue;
-    QString valueName;
-
-    for(int i = mObject->propertyOffset(); i < mObject->propertyCount(); ++i)
-    {
-      const auto tmpName = mObject->property(i).name();
-      valueName = tmpName;
-      jsonValue = QJsonValue::fromVariant(m_scriptObject->property(tmpName));
-      VF_ASSERT(jsonValue.isNull() == false, QStringC(QString("Unsupported type in script: %1 type: %2 value: %3").arg(getScriptName()).arg(QMetaType::typeName(m_scriptObject->property(tmpName).type())).arg(m_scriptObject->property(tmpName).toString())));
-      jsonObject.insert(valueName, jsonValue);
-    }
-
-    jsonDocument.setObject(jsonObject);
-    return jsonDocument;
-  }
-#endif
-
   void ScriptInstance::setScriptActive(bool t_active)
   {
     if(t_active != m_scriptActive)

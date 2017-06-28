@@ -22,10 +22,6 @@ namespace VeinScript
     bool isValid() const;
     QJsonDocument getScriptData() const;
 
-#if 0
-    QJsonDocument getScriptState() const;
-#endif
-
   signals:
     void scriptActiveChanged(ScriptInstance *t_instance, bool t_scriptActive);
     /**

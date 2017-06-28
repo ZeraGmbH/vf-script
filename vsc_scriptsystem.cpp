@@ -73,18 +73,6 @@ namespace VeinScript
         systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
         emit m_qPtr->sigSendEvent(systemEvent);
 
-        introspectionData = new VeinComponent::ComponentData();
-        introspectionData->setEntityId(m_entityId);
-        introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(s_scriptMessageComponentName);
-        introspectionData->setNewValue(QVariant());
-        introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
-        introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
-
-        systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
-        emit m_qPtr->sigSendEvent(systemEvent);
-
-
         m_initDone = true;
       }
     }
@@ -140,14 +128,10 @@ namespace VeinScript
     static constexpr char const *s_entityNameComponentName = "EntityName";
     static constexpr char const *s_scriptsComponentName = "Scripts";
     static constexpr char const *s_addScriptComponentName = "addScript";
-    static constexpr char const *s_scriptMessageComponentName = "notifyScript";
     //script json keys
     static constexpr char const *s_scriptJsonNameKey = "scriptName";
     static constexpr char const *s_scriptJsonDataKey = "scriptData";
     static constexpr char const *s_scriptJsonSignatureKey = "scriptSignature";
-    //message json keys
-    static constexpr char const *s_messageJsonScriptNameKey = "scriptName";
-    static constexpr char const *s_messageJsonDataKey = "messageData";
 
     ScriptSystem *m_qPtr;
     QQmlComponent m_component;
@@ -159,9 +143,6 @@ namespace VeinScript
 
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
   {
-#if 0
-    connect(this, &ScriptSystem::sigSendScriptMessage, this, &ScriptSystem::sendScriptMessage);
-#endif
   }
 
   void ScriptSystem::initSystem()
@@ -206,32 +187,6 @@ namespace VeinScript
               m_dPtr->sendError(jsonScriptError->errorString(), cData);
             }
           }
-          else if(cData->componentName() == ScriptSystemPrivate::s_scriptMessageComponentName)
-          {
-            QJsonParseError *jsonMessageError = nullptr;
-            const QString tmpMessage = cData->newValue().toString();
-            QJsonDocument messageParsed = QJsonDocument::fromJson(tmpMessage.toUtf8(), jsonMessageError);
-            if(jsonMessageError->error == QJsonParseError::NoError)
-            {
-              QJsonObject messageObject = messageParsed.object();
-              const QString scriptReceiverName = messageObject.value(ScriptSystemPrivate::s_messageJsonScriptNameKey).toString();
-              ScriptInstance *messageScript = m_dPtr->m_scriptHash.value(scriptReceiverName, nullptr);
-
-              if(messageScript != nullptr)
-              {
-                messageScript->scriptMessageReceived(tmpMessage);
-              }
-              else
-              {
-                m_dPtr->sendError(QString("Unable to transmit message to script, no script found with name: %1").arg(scriptReceiverName), cData);
-              }
-            }
-            else
-            {
-              //send error message
-              m_dPtr->sendError(jsonMessageError->errorString(), cData);
-            }
-          }
         }
       }
 
@@ -245,31 +200,5 @@ namespace VeinScript
     }
     return retVal;
   }
-
-#if 0
-  void ScriptSystem::sendScriptMessage(const QString &t_message)
-  {
-    QJsonParseError *jsonMessageError = nullptr;
-    QJsonDocument tmpMessage = QJsonDocument::fromJson(t_message.toUtf8(), jsonMessageError);
-
-    if(jsonMessageError->error == QJsonParseError::NoError &&
-       tmpMessage.isObject() == true)
-    {
-      VeinComponent::ComponentData *errData = new VeinComponent::ComponentData();
-      errData->setCommand(VeinComponent::ComponentData::Command::CCMD_SET);
-      errData->setComponentName(ScriptSystemPrivate::s_scriptMessageComponentName);
-      errData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
-      errData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
-      errData->setNewValue(t_message);
-
-      VeinEvent::CommandEvent *cEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, errData);
-      emit sigSendEvent(cEvent);
-    }
-    else
-    {
-      //send error message?
-    }
-  }
-#endif
 
 } // namespace VeinScript
