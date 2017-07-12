@@ -14,9 +14,8 @@ namespace VeinScript
   public:
     explicit ScriptSystem(QObject *t_parent=0);
     virtual ~ScriptSystem() {}
-
-  signals:
-    void sigSendScriptMessage(const QString &t_message);
+    QStringList listScripts();
+    bool loadScriptFromFile(const QString &t_fileName, const QString &t_signatureFileName = QString());
 
   public slots:
     void initSystem();
@@ -24,11 +23,6 @@ namespace VeinScript
     // EventSystem interface
   public:
     bool processEvent(QEvent *t_event) override;
-
-#if 0
-  protected slots:
-    void sendScriptMessage(const QString &t_message);
-#endif
 
   private:
     ScriptSystemPrivate *m_dPtr=0;

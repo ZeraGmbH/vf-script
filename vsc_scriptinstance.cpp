@@ -10,10 +10,9 @@ namespace VeinScript
     QObject(t_parent),
     m_scriptObject(t_scriptObject),
     m_scriptData(t_scriptData),
-    m_scriptValid(t_scriptObject != nullptr)
+    m_scriptValid(t_scriptObject != nullptr && t_scriptData.isNull() == false)
   {
-    VF_ASSERT(t_scriptObject != nullptr, "Invalid script object");
-    VF_ASSERT(t_scriptData.isNull() == false, "Invalid script data");
+    VF_ASSERT(m_scriptValid == true, "Script is not valid, please check the source");
   }
 
   ScriptInstance::~ScriptInstance()
@@ -29,6 +28,11 @@ namespace VeinScript
   bool ScriptInstance::scriptActive() const
   {
     return m_scriptActive;
+  }
+
+  bool ScriptInstance::isValid() const
+  {
+    return m_scriptValid;
   }
 
   QJsonDocument ScriptInstance::getScriptData() const

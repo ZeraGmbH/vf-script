@@ -9,6 +9,7 @@
 #include <vcmp_introspectiondata.h>
 #include <vcmp_errordata.h>
 
+#include <QFile>
 #include <QHash>
 #include <QQmlEngine>
 #include <QQmlComponent>
@@ -91,32 +92,61 @@ namespace VeinScript
       emit m_qPtr->sigSendEvent(cEvent);
     }
 
-    QJsonDocument scriptToJson(ScriptInstance *t_instance)
-    {
-      return t_instance->getScriptData();
-    }
-
-    ScriptInstance *scriptFromJson(QJsonDocument t_jsonDoc, VeinComponent::ComponentData *t_errorData)
+    ScriptInstance *scriptFromJson(QJsonDocument t_jsonDoc, VeinComponent::ComponentData *t_errorData = nullptr)
     {
       VF_ASSERT(t_jsonDoc.isEmpty() == false, "Invalid json document");
       VF_ASSERT(t_jsonDoc.isObject() == true, "JSON document has no object");
       QJsonObject jsonObject = t_jsonDoc.object();
+      QQuickItem *tmpItem = nullptr;
 
       QByteArray scriptSignature;
+      QByteArray scriptData;
       scriptSignature.append(jsonObject.value(ScriptSystemPrivate::s_scriptJsonSignatureKey).toString());
       scriptSignature = QByteArray::fromBase64(scriptSignature);
-      //@todo: check script signature with QCA openssl dgst verify
+      /// @todo check script signature with QCA openssl dgst verify
 
-      QQuickItem *tmpItem = nullptr;
-      m_component.setData(jsonObject.value(ScriptSystemPrivate::s_scriptJsonDataKey).toString().toUtf8(), QUrl(jsonObject.value(ScriptSystemPrivate::s_scriptJsonNameKey).toString()));
+      scriptData = jsonObject.value(ScriptSystemPrivate::s_scriptJsonDataKey).toString().toUtf8();
+      m_component.setData(scriptData, QUrl(jsonObject.value(ScriptSystemPrivate::s_scriptJsonNameKey).toString()));
       tmpItem = qobject_cast<QQuickItem *>(m_component.beginCreate(m_engine.rootContext()));
       m_component.completeCreate();
-      if(m_component.errors().isEmpty() == false)
+      if(m_component.errors().isEmpty() == false && t_errorData != nullptr)
       {
         sendError(m_component.errorString(), t_errorData);
       }
       ScriptInstance * tmpScript = new ScriptInstance(tmpItem, t_jsonDoc, m_qPtr);
       return tmpScript;
+    }
+
+    void scriptInserted(const QString &t_name, ScriptInstance *t_instance)
+    {
+      QStringList scriptListEntityValue;
+      if(m_scriptHash.contains(t_name))
+      {
+        //remove the old script
+        m_scriptHash.value(t_name)->deleteLater();
+      }
+
+      m_scriptHash.insert(t_name, t_instance);
+
+
+      for(const auto tmpScript : m_scriptHash.values())
+      {
+        scriptListEntityValue.append(QString::fromUtf8(tmpScript->getScriptData().toJson(QJsonDocument::Compact)));
+      }
+
+      if(scriptListEntityValue.isEmpty() == false)
+      {
+        VeinComponent::ComponentData *scriptListCompData = new VeinComponent::ComponentData();
+        scriptListCompData->setEntityId(m_entityId);
+        scriptListCompData->setCommand(VeinComponent::ComponentData::Command::CCMD_SET);
+        scriptListCompData->setComponentName(s_scriptsComponentName);
+        scriptListCompData->setNewValue(QVariant(scriptListEntityValue));
+        scriptListCompData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
+        scriptListCompData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
+
+        VeinEvent::CommandEvent *scriptListEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, scriptListCompData);
+        m_qPtr->sigSendEvent(scriptListEvent);
+      }
     }
 
     const int m_entityId = 1;
@@ -143,6 +173,62 @@ namespace VeinScript
 
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
   {
+  }
+
+  QStringList ScriptSystem::listScripts()
+  {
+    QStringList retVal;
+    for(const QString &scriptName : m_dPtr->m_scriptHash.keys())
+    {
+      retVal.append(scriptName);
+    }
+
+    return retVal;
+  }
+
+  bool ScriptSystem::loadScriptFromFile(const QString &t_fileName, const QString &t_signatureFileName)
+  {
+    bool retVal = false;
+
+    const bool signatureRequired = t_signatureFileName.isEmpty() == false && QFile::exists(t_signatureFileName);
+    QByteArray scriptSignature;
+
+    if(signatureRequired)
+    {
+      QFile signatureFile(t_signatureFileName);
+      signatureFile.open(QFile::ReadOnly);
+      scriptSignature = signatureFile.readAll();
+      signatureFile.close();
+      scriptSignature = QByteArray::fromBase64(scriptSignature);
+    }
+
+
+    if(QFile::exists(t_fileName))
+    {
+      QFile scriptFile(t_fileName);
+      QByteArray scriptData;
+      QJsonDocument jDoc;
+      QJsonObject jObj;
+
+      scriptFile.open(QFile::ReadOnly | QFile::Text);
+      scriptData = scriptFile.readAll();
+      scriptFile.close();
+
+
+      jObj.insert(ScriptSystemPrivate::s_scriptJsonNameKey, t_fileName);
+      jObj.insert(ScriptSystemPrivate::s_scriptJsonDataKey, QString::fromUtf8(scriptData));
+      jObj.insert(ScriptSystemPrivate::s_scriptJsonSignatureKey, QString::fromUtf8(scriptSignature));
+      jDoc.setObject(jObj);
+
+      ScriptInstance *tmpInstance = m_dPtr->scriptFromJson(jDoc);
+      if(tmpInstance != nullptr && tmpInstance->isValid())
+      {
+        m_dPtr->scriptInserted(t_fileName, tmpInstance);
+        retVal = true;
+      }
+    }
+
+    return retVal;
   }
 
   void ScriptSystem::initSystem()
@@ -173,18 +259,21 @@ namespace VeinScript
         {
           if(cData->componentName() == ScriptSystemPrivate::s_addScriptComponentName)
           {
-            QJsonParseError *jsonScriptError = nullptr;
-            QJsonDocument tmpScript = QJsonDocument::fromJson(cData->newValue().toString().toUtf8(), jsonScriptError);
+            QJsonParseError jsonScriptError;
+            QJsonDocument tmpScript = QJsonDocument::fromJson(cData->newValue().toString().toUtf8(), &jsonScriptError);
 
-            if(jsonScriptError->error == QJsonParseError::NoError)
+            if(jsonScriptError.error == QJsonParseError::NoError)
             {
               ScriptInstance *tmpInstance = m_dPtr->scriptFromJson(tmpScript, cData);
-              m_dPtr->m_scriptHash.insert(tmpInstance->getScriptName(), tmpInstance);
+              if(tmpInstance != nullptr && tmpInstance->isValid())
+              {
+                m_dPtr->scriptInserted(tmpInstance->getScriptName(), tmpInstance);
+              }
             }
             else
             {
               //send error message
-              m_dPtr->sendError(jsonScriptError->errorString(), cData);
+              m_dPtr->sendError(jsonScriptError.errorString(), cData);
             }
           }
         }
