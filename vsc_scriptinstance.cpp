@@ -25,11 +25,6 @@ namespace VeinScript
     return m_scriptData.object().value("scriptName").toString();
   }
 
-  bool ScriptInstance::scriptActive() const
-  {
-    return m_scriptActive;
-  }
-
   bool ScriptInstance::isValid() const
   {
     return m_scriptValid;
@@ -38,14 +33,5 @@ namespace VeinScript
   QJsonDocument ScriptInstance::getScriptData() const
   {
     return m_scriptData;
-  }
-
-  void ScriptInstance::setScriptActive(bool t_active)
-  {
-    if(t_active != m_scriptActive)
-    {
-      m_scriptActive = t_active;
-      emit scriptActiveChanged(this, m_scriptActive);
-    }
   }
 } // namespace VeinScript

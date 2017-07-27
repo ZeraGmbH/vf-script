@@ -13,12 +13,11 @@ namespace VeinScript
   class ScriptInstance : public QObject
   {
     Q_OBJECT
-    Q_PROPERTY(bool scriptActive READ scriptActive WRITE setScriptActive NOTIFY scriptActiveChanged)
+
   public:
     explicit ScriptInstance(QQuickItem *t_scriptObject, const QJsonDocument &t_scriptData, QObject *t_parent = 0);
     ~ScriptInstance();
     QString getScriptName() const;
-    bool scriptActive() const;
     bool isValid() const;
     QJsonDocument getScriptData() const;
 
@@ -30,13 +29,9 @@ namespace VeinScript
      */
     void scriptMessageReceived(const QString &t_message);
 
-  public slots:
-    void setScriptActive(bool t_active);
-
   private:
     QQuickItem *m_scriptObject=0;
     const QJsonDocument m_scriptData;
-    bool m_scriptActive=false;
     const bool m_scriptValid;
   };
 } // namespace VeinScript
