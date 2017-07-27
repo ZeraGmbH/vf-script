@@ -17,9 +17,6 @@ namespace VeinScript
     QStringList listScripts();
     bool loadScriptFromFile(const QString &t_fileName, const QString &t_signatureFileName = QString());
 
-  public slots:
-    void initSystem();
-
     // EventSystem interface
   public:
     bool processEvent(QEvent *t_event) override;

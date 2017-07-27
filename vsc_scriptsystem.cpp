@@ -24,14 +24,16 @@ namespace VeinScript
     ScriptSystemPrivate(ScriptSystem *t_qPtr) : m_qPtr(t_qPtr), m_component(&m_engine)
     {
     }
+    ~ScriptSystemPrivate() {}
 
     void initOnce()
     {
+      Q_ASSERT(m_initDone == false);
       if(m_initDone == false)
       {
         VeinComponent::EntityData *systemData = new VeinComponent::EntityData();
         systemData->setCommand(VeinComponent::EntityData::Command::ECMD_ADD);
-        systemData->setEntityId(m_entityId);
+        systemData->setEntityId(s_entityId);
 
         VeinEvent::CommandEvent *systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, systemData);
 
@@ -39,40 +41,25 @@ namespace VeinScript
 
         VeinComponent::ComponentData *introspectionData = nullptr;
 
-        //component name
-        introspectionData = new VeinComponent::ComponentData();
-        introspectionData->setEntityId(m_entityId);
-        introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(s_entityNameComponentName);
-        introspectionData->setNewValue(s_entityName);
-        introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
-        introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
+        QHash<QString, QVariant> componentData;
+        componentData.insert(s_entityNameComponentName, s_entityName);
+        ///@todo load from persistent data?
+        componentData.insert(s_scriptsComponentName, QVariant());
+        componentData.insert(s_addScriptComponentName, QVariant());
 
-        systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
-        emit m_qPtr->sigSendEvent(systemEvent);
+        for(const QString &componentName : componentData.keys())
+        {
+          introspectionData = new VeinComponent::ComponentData();
+          introspectionData->setEntityId(s_entityId);
+          introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
+          introspectionData->setComponentName(componentName);
+          introspectionData->setNewValue(componentData.value(componentName));
+          introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
+          introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
 
-        //scripts
-        introspectionData = new VeinComponent::ComponentData();
-        introspectionData->setEntityId(m_entityId);
-        introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(s_scriptsComponentName);
-        introspectionData->setNewValue(QVariant());
-        introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
-        introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
-
-        systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
-        emit m_qPtr->sigSendEvent(systemEvent);
-        //addScript function
-        introspectionData = new VeinComponent::ComponentData();
-        introspectionData->setEntityId(m_entityId);
-        introspectionData->setCommand(VeinComponent::ComponentData::Command::CCMD_ADD);
-        introspectionData->setComponentName(s_addScriptComponentName);
-        introspectionData->setNewValue(QVariant());
-        introspectionData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
-        introspectionData->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
-
-        systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
-        emit m_qPtr->sigSendEvent(systemEvent);
+          systemEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, introspectionData);
+          emit m_qPtr->sigSendEvent(systemEvent);
+        }
 
         m_initDone = true;
       }
@@ -137,7 +124,7 @@ namespace VeinScript
       if(scriptListEntityValue.isEmpty() == false)
       {
         VeinComponent::ComponentData *scriptListCompData = new VeinComponent::ComponentData();
-        scriptListCompData->setEntityId(m_entityId);
+        scriptListCompData->setEntityId(s_entityId);
         scriptListCompData->setCommand(VeinComponent::ComponentData::Command::CCMD_SET);
         scriptListCompData->setComponentName(s_scriptsComponentName);
         scriptListCompData->setNewValue(QVariant(scriptListEntityValue));
@@ -149,9 +136,9 @@ namespace VeinScript
       }
     }
 
-    const int m_entityId = 1;
     bool m_initDone=false;
 
+    static constexpr int s_entityId = 1;
     //entity name
     static constexpr char const *s_entityName = "_ScriptSystem";
     //component names
@@ -173,6 +160,7 @@ namespace VeinScript
 
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
   {
+    connect(this, &ScriptSystem::sigAttached, [this](){ m_dPtr->initOnce(); });
   }
 
   QStringList ScriptSystem::listScripts()
@@ -231,11 +219,6 @@ namespace VeinScript
     return retVal;
   }
 
-  void ScriptSystem::initSystem()
-  {
-    m_dPtr->initOnce();
-  }
-
   bool ScriptSystem::processEvent(QEvent *t_event)
   {
     bool retVal = false;
@@ -255,7 +238,7 @@ namespace VeinScript
         Q_ASSERT(cData!=nullptr);
 
         if(cData->eventCommand() == VeinComponent::ComponentData::Command::CCMD_SET &&
-           cData->entityId() == m_dPtr->m_entityId)
+           cData->entityId() == ScriptSystemPrivate::s_entityId)
         {
           if(cData->componentName() == ScriptSystemPrivate::s_addScriptComponentName)
           {
