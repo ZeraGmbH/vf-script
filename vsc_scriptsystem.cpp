@@ -140,15 +140,15 @@ namespace VeinScript
 
     static constexpr int s_entityId = 1;
     //entity name
-    static constexpr char const *s_entityName = "_ScriptSystem";
+    static constexpr QLatin1String s_entityName = QLatin1String("_ScriptSystem");
     //component names
-    static constexpr char const *s_entityNameComponentName = "EntityName";
-    static constexpr char const *s_scriptsComponentName = "Scripts";
-    static constexpr char const *s_addScriptComponentName = "addScript";
+    static constexpr QLatin1String s_entityNameComponentName = QLatin1String("EntityName");
+    static constexpr QLatin1String s_scriptsComponentName = QLatin1String("Scripts");
+    static constexpr QLatin1String s_addScriptComponentName = QLatin1String("addScript()");
     //script json keys
-    static constexpr char const *s_scriptJsonNameKey = "scriptName";
-    static constexpr char const *s_scriptJsonDataKey = "scriptData";
-    static constexpr char const *s_scriptJsonSignatureKey = "scriptSignature";
+    static constexpr QLatin1String s_scriptJsonNameKey = QLatin1String("scriptName");
+    static constexpr QLatin1String s_scriptJsonDataKey = QLatin1String("scriptData");
+    static constexpr QLatin1String s_scriptJsonSignatureKey = QLatin1String("scriptSignature");
 
     ScriptSystem *m_qPtr;
     QQmlComponent m_component;
@@ -156,6 +156,18 @@ namespace VeinScript
     QHash<QString, ScriptInstance *> m_scriptHash;
     friend class ScriptSystem;
   };
+
+  //constexpr definition, see: https://stackoverflow.com/questions/8016780/undefined-reference-to-static-constexpr-char
+  //entity name
+  constexpr QLatin1String ScriptSystemPrivate::s_entityName;
+  //component names
+  constexpr QLatin1String ScriptSystemPrivate::s_entityNameComponentName;
+  constexpr QLatin1String ScriptSystemPrivate::s_scriptsComponentName;
+  constexpr QLatin1String ScriptSystemPrivate::s_addScriptComponentName;
+  //script json keys
+  constexpr QLatin1String ScriptSystemPrivate::s_scriptJsonNameKey;
+  constexpr QLatin1String ScriptSystemPrivate::s_scriptJsonDataKey;
+  constexpr QLatin1String ScriptSystemPrivate::s_scriptJsonSignatureKey;
 
 
   ScriptSystem::ScriptSystem(QObject *t_parent) : VeinEvent::EventSystem(t_parent), m_dPtr(new ScriptSystemPrivate(this))
