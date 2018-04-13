@@ -15,7 +15,7 @@ namespace VeinScript
     Q_OBJECT
 
   public:
-    explicit ScriptInstance(QQuickItem *t_scriptObject, const QJsonDocument &t_scriptData, QObject *t_parent = 0);
+    explicit ScriptInstance(QQuickItem *t_scriptObject, const QJsonDocument &t_scriptData, QObject *t_parent = nullptr);
     ~ScriptInstance();
     QString getScriptName() const;
     bool isValid() const;
@@ -30,7 +30,7 @@ namespace VeinScript
     void scriptMessageReceived(const QString &t_message);
 
   private:
-    QQuickItem *m_scriptObject=0;
+    QQuickItem *m_scriptObject=nullptr;
     const QJsonDocument m_scriptData;
     const bool m_scriptValid;
   };

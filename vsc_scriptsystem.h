@@ -12,7 +12,7 @@ namespace VeinScript
   {
     Q_OBJECT
   public:
-    explicit ScriptSystem(QObject *t_parent=0);
+    explicit ScriptSystem(QObject *t_parent=nullptr);
     virtual ~ScriptSystem() {}
     QStringList listScripts();
     bool loadScriptFromFile(const QString &t_fileName, const QString &t_signatureFileName = QString());
@@ -22,7 +22,7 @@ namespace VeinScript
     bool processEvent(QEvent *t_event) override;
 
   private:
-    ScriptSystemPrivate *m_dPtr=0;
+    ScriptSystemPrivate *m_dPtr=nullptr;
   };
 } // namespace VeinScript
 #endif // VEINSCRIPT_SCRIPTSYSTEM_H
