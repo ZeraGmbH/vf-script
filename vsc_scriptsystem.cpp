@@ -276,6 +276,7 @@ namespace VeinScript
 
       if(validated == true)
       {
+        ///@todo @bug remove inconsistent behavior by sending a new event instead of rewriting the current event
         retVal = true;
         cEvent->setEventSubtype(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION);
         cEvent->eventData()->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
