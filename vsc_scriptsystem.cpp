@@ -252,7 +252,7 @@ namespace VeinScript
         if(cData->eventCommand() == VeinComponent::ComponentData::Command::CCMD_SET &&
            cData->entityId() == ScriptSystemPrivate::s_entityId)
         {
-          if(cData->componentName() == ScriptSystemPrivate::s_addScriptComponentName)
+          if(cData->componentName() == ScriptSystemPrivate::s_addScriptComponentName) ///@todo change addScript() into an RPC
           {
             QJsonParseError jsonScriptError;
             QJsonDocument tmpScript = QJsonDocument::fromJson(cData->newValue().toString().toUtf8(), &jsonScriptError);
