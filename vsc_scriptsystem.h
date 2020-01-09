@@ -2,13 +2,13 @@
 #define VEINSCRIPT_SCRIPTSYSTEM_H
 
 #include <ve_eventsystem.h>
-#include "vein-script_global.h"
+#include "globalIncludes.h"
 
 namespace VeinScript
 {
   class ScriptInstance;
   class ScriptSystemPrivate;
-  class VEINSCRIPTSHARED_EXPORT ScriptSystem : public VeinEvent::EventSystem
+  class VFSCRIPT_EXPORT ScriptSystem : public VeinEvent::EventSystem
   {
     Q_OBJECT
   public:
