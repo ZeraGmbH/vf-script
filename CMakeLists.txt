@@ -17,7 +17,6 @@ include(CMakePackageConfigHelpers)
 
 find_package(Qt5 COMPONENTS Core Qml Quick CONFIG REQUIRED)
 find_package(VeinFramework REQUIRED)
-find_package(VfQml REQUIRED)
 
 file(GLOB SOURCES 
     ${PROJECT_SOURCE_DIR}/*.cpp
@@ -41,7 +40,7 @@ target_link_libraries(VfScript
     Zera::VfEvent
     Zera::VfComponent
     Zera::VfStorageHash
-    VeinMeta::VfQml
+    Zera::VfQml
     )
 
 target_include_directories(VfScript
