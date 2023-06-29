@@ -2,6 +2,5 @@ include(CMakeFindDependencyMacro)
 
 find_dependency(Qt5 COMPONENTS Core Qml Quick CONFIG REQUIRED)
 find_dependency(VeinFramework REQUIRED)
-find_dependency(VfQml REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/VfScriptTargets.cmake")
