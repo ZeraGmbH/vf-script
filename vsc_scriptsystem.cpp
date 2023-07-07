@@ -230,10 +230,8 @@ namespace VeinScript
     return retVal;
   }
 
-  bool ScriptSystem::processEvent(QEvent *t_event)
+  void ScriptSystem::processEvent(QEvent *t_event)
   {
-    bool retVal = false;
-
     if(t_event->type() == VeinEvent::CommandEvent::eventType())
     {
       bool validated=false;
@@ -276,13 +274,11 @@ namespace VeinScript
       if(validated == true)
       {
         ///@todo @bug remove inconsistent behavior by sending a new event instead of rewriting the current event
-        retVal = true;
         cEvent->setEventSubtype(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION);
         cEvent->eventData()->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
         cEvent->eventData()->setEventTarget(VeinEvent::EventData::EventTarget::ET_ALL);
       }
     }
-    return retVal;
   }
 
 } // namespace VeinScript
