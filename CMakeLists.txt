@@ -36,7 +36,6 @@ target_link_libraries(VfScript
     Qt5::Core
     Qt5::Qml
     Qt5::Quick
-    Zera::VfHelpers
     Zera::VfEvent
     Zera::VfComponent
     Zera::VfStorageHash
