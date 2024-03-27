@@ -232,7 +232,7 @@ namespace VeinScript
 
   void ScriptSystem::processEvent(QEvent *t_event)
   {
-    if(t_event->type() == VeinEvent::CommandEvent::eventType())
+    if(t_event->type() == VeinEvent::CommandEvent::getQEventType())
     {
       bool validated=false;
       VeinEvent::CommandEvent *cEvent = nullptr;
